@@ -98,6 +98,20 @@ classdef Operation < handle
                                 disp('Error <Operation>! - getExpression!');
                                 disp('> the stiffness bilinear form should input test and variable.');
                             end
+                        case 'ElasticityBilinearExpression3D'
+                            % Bilinear form for linear elasticity
+                            if(~isempty(varargin) || ~(length(varargin{1}) < 3))
+                                test = varargin{1}{1};
+                                variable = varargin{1}{2};
+                                constitutive_law = varargin{1}{3};
+                                
+                                expression = ElasticityBilinearExpression3D(constitutive_law);
+                                expression.setTest(test);
+                                expression.setVar(variable);
+                            else
+                                disp('Error <Operation>! - getExpression!');
+                                disp('> the stiffness bilinear form should input test and variable.');
+                            end    
                         case 'delta_Tr(epsilon)_T'
                             % Linear form for linear elasticity
                             if(~isempty(varargin) || ~(length(varargin{1}) < 2))
@@ -110,7 +124,7 @@ classdef Operation < handle
                             else
                                 disp('Error <Operation>! - getExpression!');
                                 disp('> the stiffness bilinear form should input test and variable.');
-                            end
+                            end   
                         case 'laplace_nitsche_dirichlet_lhs_term'
                             % Laplace Dirichlet boundary term using Nitsche's method
                             if(~isempty(varargin) || ~(length(varargin{1}) < 3))
@@ -241,6 +255,18 @@ classdef Operation < handle
                             else
                                 disp('Error <Operation>! - getExpression!');
                                 disp('> the Nitsche lhs term should input test and traction.');
+                            end  
+                        case 'ElasticityTractionExpression3D'
+                            if(~isempty(varargin) || ~(length(varargin{1}) < 3))
+                                test = varargin{1}{1};
+                                traction_function = varargin{1}{2};
+                                
+                                expression = ElasticityTractionExpression3D();
+                                expression.setTest(test); 
+                                expression.setTractionFunction(traction_function);
+                            else
+                                disp('Error <Operation>! - getExpression!');
+                                disp('> the Traction term should input test and traction.');
                             end    
                         otherwise
                             expression = Expression();

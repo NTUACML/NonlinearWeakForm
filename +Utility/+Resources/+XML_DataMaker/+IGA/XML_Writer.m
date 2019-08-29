@@ -6,7 +6,7 @@ import Utility.Resources.NurbsToolBox.*
 
 %% Generate nurbs object
 % case_name = 'Unit_Square';
-case_name = 'Rectangle';
+% case_name = 'Rectangle';
 % case_name = 'Plane_quarter_hole';
 % case_name = 'Plane_quarter_hole_2';
 % case_name = 'Solid_quarter_hole';
@@ -16,7 +16,7 @@ case_name = 'Rectangle';
 % case_name = 'Lens_bottom_left'; 
 % case_name = '3D_Lens_left'; 
 % case_name = '3D_Lens_right';
-% case_name = 'Unit_Cube';
+case_name = 'Unit_Cube';
 
 nurbs = NurbsGenerator(case_name);
 

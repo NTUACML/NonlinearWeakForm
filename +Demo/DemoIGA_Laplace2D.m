@@ -9,6 +9,8 @@ import Operation.*
 
 %% Geometry data input
 xml_path = './ArtPDE_IGA_Unit_Square.art_geometry';
+
+% ArtPDE_IGA_Plane_quarter_hole_2
 % ArtPDE_IGA_Lens_bottom_left; ArtPDE_IGA_Plane4_refined
 geo = GeometryBuilder.create('IGA', 'XML', xml_path);
 nurbs_topology = geo.topology_data_{1};
@@ -42,19 +44,19 @@ import Differential.IGA.*
 domain_patch = nurbs_topology.getDomainPatch();
 dOmega = Differential(nurbs_basis, domain_patch);
 
-iga_domain.integrate(exp1, dOmega);
+iga_domain.integrate(exp1, dOmega, {'Default', 3});
 
-%% Constraint (Acquire prescribed D.O.F.)
-bdr_patch = nurbs_topology.getBoundayPatch('xi_1');
-iga_domain.generateConstraint(bdr_patch, var_t, {1, @()0});
-
-bdr_patch = nurbs_topology.getBoundayPatch('eta_0');
-iga_domain.generateConstraint(bdr_patch, var_t, {1, @()0});
+% Constraint (Acquire prescribed D.O.F.)
+% bdr_patch = nurbs_topology.getBoundayPatch('xi_1');
+% iga_domain.generateConstraint(bdr_patch, var_t, {1, @()0});
 
 bdr_patch = nurbs_topology.getBoundayPatch('eta_1');
 iga_domain.generateConstraint(bdr_patch, var_t, {1, @()0});
+% 
+% bdr_patch = nurbs_topology.getBoundayPatch('xi_0');
+% iga_domain.generateConstraint(bdr_patch, var_t, {1, @()0});
 
-bdr_patch = nurbs_topology.getBoundayPatch('xi_0');
+bdr_patch = nurbs_topology.getBoundayPatch('eta_0');
 iga_domain.generateConstraint(bdr_patch, var_t, {1, @()1});
 %% Nurbs tools create & plot nurbs
 import Utility.NurbsUtility.NurbsTools
@@ -80,14 +82,14 @@ t_interpo = Interpolation(var_t);
 [x, data, element] = t_interpo.DomainDataSampling();
 
 %% Show result (Post-Processes)
-fv.vertices = [x(:,1:2), data.value{1}];
+fv.vertices = x(:,1:2);
 fv.faces = element;
 fv.facevertexcdata = data.value{1};
 
 figure; hold on; grid on; axis equal;
 patch(fv,'CDataMapping','scaled','EdgeColor',[.7 .7 .7],'FaceColor','interp','FaceAlpha',1);
 title('ArtPDE Laplace problem... (IGA)')
-view([0 90]);
+colorbar
 hold off;
 %% Show result
 disp(var_t);

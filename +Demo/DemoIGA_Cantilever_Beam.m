@@ -1,16 +1,5 @@
-function DemoIGA_LinearElasticity2D
+function DemoIGA_Cantilever_Beam
 clc; clear; close all;
-
-% Plane stress
-% temp = E/(1-nu*nu);
-% constitutive_law = temp*[1  nu 0;
-%                          nu 1  0;
-%                          0  0  0.5*(1-nu)];
-% Plane strain                     
-% temp = E/(1+nu)/(1-2*nu);
-% constitutive_law = temp*[1-nu nu   0;
-%                          nu   1-nu 0;
-%                          0    0    0.5*(1-2*nu)];
 
 %% Include package
 import Utility.BasicUtility.*
@@ -31,6 +20,15 @@ iga_domain = DomainBuilder.create('IGA');
 %% Basis create
 nurbs_basis = iga_domain.generateBasis(nurbs_topology);
 
+%% Nurbs tools create & plot nurbs
+nurbs_tool = NurbsTools(nurbs_basis);
+
+figure; hold on; grid on; axis equal;
+nurbs_tool.plotNurbs();
+nurbs_tool.plotControlMesh();
+
+hold off;
+
 %% Variable define   
 var_u = iga_domain.generateVariable('displacement', nurbs_basis,...
                                     VariableType.Vector, 2);      
@@ -41,6 +39,12 @@ test_u = iga_domain.generateTestVariable(var_u, nurbs_basis);
 operation1 = Operation();
 operation1.setOperator('delta_epsilon_dot_sigma');
 
+% operation2 = Operation();
+% operation2.setOperator('elasticity_nitsche_dirichlet_lhs_term');
+
+operation3 = Operation();
+operation3.setOperator('elasticity_applied_traction');
+
 %% Expression acquired
 import MaterialBank.*
 import Utility.BasicUtility.ElasticMaterialType
@@ -50,6 +54,11 @@ constitutive_law = SaintVenantKirchhoff({nu, E, ElasticMaterialType.PlaneStress}
 
 exp1 = operation1.getExpression('IGA', {test_u, var_u, constitutive_law});
 
+% beta = 100;
+% exp2 = operation2.getExpression('IGA', {test_u, var_u, constitutive_law, beta});
+
+exp3 = operation3.getExpression('IGA', {test_u, @traction});
+
 %% Integral variation equations
 % Domain integral
 import Differential.IGA.*
@@ -58,12 +67,26 @@ import Differential.IGA.*
 domain_patch = nurbs_topology.getDomainPatch();
 dOmega = Differential(nurbs_basis, domain_patch);
 
-iga_domain.integrate(exp1, dOmega, {'Default', 3});
+iga_domain.integrate(exp1, dOmega, {'Default', 2});
+
+
+bdr_patch = nurbs_topology.getBoundayPatch('xi_1');
+dGamma = Differential(nurbs_basis, bdr_patch);
+
+iga_domain.integrate(exp3, dGamma, {'Default', 2});
 
 %% Constraint (Acquire prescribed D.O.F.)
+
+bdr_patch = nurbs_topology.getBoundayPatch('xi_0');
+iga_domain.generateConstraint(bdr_patch, var_u, {1, @zero_fcn}, {'collocation', nurbs_basis});
+
+% fix the u-displacement at the center of left edge
+iga_domain.generateConstraint(bdr_patch, var_u, {2, @zero_fcn}, {'collocation', nurbs_basis});
+temp = iga_domain.constraint_(2);
+temp.constraint_var_id_ = temp.constraint_var_id_(ceil(end/2));
 %% Exact solution for Cantilever Beam
-geometry.D = 1.0;
-geometry.L = 10.0;
+geometry.D = 0.2;
+geometry.L = 1.0;
 geometry.p = -1.0;
 
 material.E = E;
@@ -76,36 +99,11 @@ sigma_x = @(position) sigma_ana_x(position(:,1), position(:,2), material, geomet
 sigma_y = @(position) sigma_ana_y(position(:,1), position(:,2), material, geometry);
 sigma_xy = @(position) sigma_ana_xy(position(:,1), position(:,2), material, geometry);
 
+
 bdr_patch = nurbs_topology.getBoundayPatch('xi_0');
 iga_domain.generateConstraint(bdr_patch, var_u, {1, u_x}, {'collocation', nurbs_basis});
 iga_domain.generateConstraint(bdr_patch, var_u, {2, u_y}, {'collocation', nurbs_basis});
 
-bdr_patch = nurbs_topology.getBoundayPatch('xi_1');
-iga_domain.generateConstraint(bdr_patch, var_u, {1, u_x}, {'collocation', nurbs_basis});
-iga_domain.generateConstraint(bdr_patch, var_u, {2, u_y}, {'collocation', nurbs_basis});
-
-bdr_patch = nurbs_topology.getBoundayPatch('eta_0');
-iga_domain.generateConstraint(bdr_patch, var_u, {1, u_x}, {'collocation', nurbs_basis});
-iga_domain.generateConstraint(bdr_patch, var_u, {2, u_y}, {'collocation', nurbs_basis});
-
-bdr_patch = nurbs_topology.getBoundayPatch('eta_1');
-iga_domain.generateConstraint(bdr_patch, var_u, {1, u_x}, {'collocation', nurbs_basis});
-iga_domain.generateConstraint(bdr_patch, var_u, {2, u_y}, {'collocation', nurbs_basis});
-
-%% Nurbs tools create & plot nurbs
-nurbs_tool = NurbsTools(nurbs_basis);
-
-figure; hold on; grid on; 
-nurbs_tool.plotNurbs();
-nurbs_tool.plotControlMesh();
-
-control_point = domain_patch.nurbs_data_.control_points_(:,1:3);
-xlabel('x'); ylabel('y'); zlabel('z'); 
-for i = 1:size(control_point,1)
-    text(control_point(i,1), control_point(i,2), control_point(i,3), num2str(i), 'FontSize',14);
-end
-
-hold off;
 %% Solve domain equation system
 import Solver.*
 import Utility.BasicUtility.SolverType
@@ -153,11 +151,10 @@ hold off;
 % plot deformed mesh
 import Utility.Resources.quadplot
 figure; hold on; grid on; axis equal;
-scale_factor = 10;
+scale_factor = 50;
 quadplot(element, x(:,1)+scale_factor*data.value{1}, x(:,2)+scale_factor*data.value{2});
 title('IGA Cantilever Beam deformed mesh')
 hold off;
-
 
 temp = E/(1-nu*nu);
 % plot sigma_x
@@ -218,6 +215,11 @@ hold off;
 % disp(var_u);
 end
 
+function [t_x, t_y] = traction(x, y)
+    t_x = 0;
+    t_y = -1;
+end
+
 function val = u_ana_x(x, y, material, geometry)
     val = AnalyticSolutionElasticity(x, y, material, geometry, 'displacement');
     val= val.x;
@@ -265,4 +267,8 @@ switch outVal
         val = sigma;
 end
 
+end
+
+function val = zero_fcn(x, y)
+    val = 0;
 end

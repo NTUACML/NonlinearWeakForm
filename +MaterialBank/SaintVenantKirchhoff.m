@@ -50,16 +50,20 @@ classdef SaintVenantKirchhoff < MaterialBank.MaterialBase
             import Utility.BasicUtility.ElasticMaterialType         
             if isempty(this.D_temp_)
                 switch this.type_
-                    case ElasticMaterialType.Solid 
-                        D_matrix = zeros(6,6);
-                        D_matrix(1:3, 1:3) = this.lambda_;
+                    case ElasticMaterialType.Solid                                  
+                        G = this.E_/2/(1+this.nu_);
+                        lambda = G/(1-2*this.nu_);
                         
-                        D_matrix(1,1) = D_matrix(1,1) + 2*this.mu_;
-                        D_matrix(2,2) = D_matrix(2,2) + 2*this.mu_;
-                        D_matrix(3,3) = D_matrix(3,3) + 2*this.mu_;
-                        D_matrix(4,4) = this.mu_;
-                        D_matrix(5,5) = this.mu_;
-                        D_matrix(6,6) = this.mu_;                       
+                        D_matrix = zeros(6,6);  
+                        
+                        D_matrix(1:3, 1:3) = lambda;
+                        
+                        D_matrix(1,1) = D_matrix(1,1) + 2*G;
+                        D_matrix(2,2) = D_matrix(2,2) + 2*G;
+                        D_matrix(3,3) = D_matrix(3,3) + 2*G;
+                        D_matrix(4,4) = G;
+                        D_matrix(5,5) = G;
+                        D_matrix(6,6) = G;                       
                     case ElasticMaterialType.PlaneStress
                         temp = this.E_/(1-this.nu_*this.nu_);
                         D_matrix = temp*[1  this.nu_ 0;

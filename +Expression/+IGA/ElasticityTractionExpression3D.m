@@ -1,4 +1,4 @@
-classdef ElasticityTractionExpression < Expression.IGA.Expression
+classdef ElasticityTractionExpression3D < Expression.IGA.Expression
     %ElasticityBilinearExpression Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -7,7 +7,7 @@ classdef ElasticityTractionExpression < Expression.IGA.Expression
     end
     
     methods
-        function this = ElasticityTractionExpression()
+        function this = ElasticityTractionExpression3D()
             this@Expression.IGA.Expression();
         end
         
@@ -36,11 +36,11 @@ classdef ElasticityTractionExpression < Expression.IGA.Expression
                 
                 % Test query
                 test_basis.query(query_unit, []);
-                test_non_zero_id = query_unit.non_zero_id_;
-                test_eval = query_unit.evaluate_basis_;
+                non_zero_id = query_unit.non_zero_id_;
+                eval = query_unit.evaluate_basis_;
                              
                 % Put non_zero id
-                basis_id = {test_non_zero_id};
+                basis_id = {non_zero_id};
                 
                 % get local mapping
                 differential.queryAt(qx(i,:));
@@ -50,18 +50,21 @@ classdef ElasticityTractionExpression < Expression.IGA.Expression
                 x = differential.mapping();
                                                               
                 % eval linear form
-                N_test = zeros(2, 2*length(test_non_zero_id));
+                N = zeros(3, 3*length(non_zero_id));
                 
-                odd = 1:2:2*length(test_non_zero_id);
-                even = 2:2:2*length(test_non_zero_id);
+                id_1 = 1:3:3*length(non_zero_id);
+                id_2 = 2:3:3*length(non_zero_id);
+                id_3 = 3:3:3*length(non_zero_id);
                 
-                N_test(1, odd) = test_eval{1};
+                N(1, id_1) = eval{1};
                 
-                N_test(2, even) = test_eval{1};
+                N(2, id_2) = eval{1};
+                
+                N(3, id_3) = eval{1};
                 
                 % add to local matrix
-                [t_x, t_y] = this.traction_function_(x(1), x(2));
-                local_matrix{i} = (N_test' * [t_x; t_y]) * qw(i) * J; 
+                [t_x, t_y, t_z] = this.traction_function_(x(1), x(2), x(3));
+                local_matrix{i} = (N' * [t_x; t_y; t_z]) * qw(i) * J; 
             end
             
             data = local_matrix{1};
